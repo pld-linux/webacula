@@ -1,13 +1,18 @@
+# TODO
+# - fails to work if some %lang file not installed
+# - does not work with baucla 5.2:
+#   PHP Fatal error:  Uncaught exception 'Zend_Exception' with message 'Version error for Catalog database (wanted 12, got 14) ' in /usr/share/webacula/html/index.php:183\nStack trace:\n#0 {main}\n  thrown in /usr/share/webacula/html/index.php on line 183
 Summary:	Web interface of a Bacula backup system
 Summary(ru.UTF-8):	Веб интерфейс для Bacula backup system
 Name:		webacula
 Version:	5.0.3
-Release:	0.1
+Release:	0.4
 License:	GPL v3+
 Group:		Applications/WWW
 URL:		http://webacula.sourceforge.net/
 Source0:	http://downloads.sourceforge.net/webacula/%{name}-%{version}.tar.gz
 # Source0-md5:	0a3b91e35d3bf55457f4c78b3882c2c2
+BuildRequires:	rpmbuild(macros) >= 1.268
 Requires:	ZendFramework >= 1.8.3
 Requires:	bacula-console >= 5.0
 Requires:	php-gd
@@ -15,10 +20,16 @@ Requires:	php-json
 Requires:	php-pcre
 Requires:	php-pdo
 Requires:	php-xml
+Requires:	webapps
 Requires:	webserver
 Requires:	webserver(php) >= 5.2.4
 BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
+
+%define		_webapps	/etc/webapps
+%define		_webapp		%{name}
+%define		_sysconfdir	%{_webapps}/%{_webapp}
+%define		_appdir		%{_datadir}/%{_webapp}
 
 %description
 Webacula - Web Bacula - web interface of a Bacula backup system.
@@ -40,65 +51,64 @@ Webacula - Web Bacula - веб интерфейс для Bacula backup system.
 
 %prep
 %setup -q
-rm -f ./application/.htaccess
-rm -f ./html/test_mod_rewrite/.htaccess
-rm -f ./html/.htaccess
-rm -f ./install/.htaccess
-rm -f ./languages/.htaccess
-rm -f ./application/.htaccess
-rm -f ./docs/.htaccess
+#%{__rm} application/.htaccess
+%{__rm} html/test_mod_rewrite/.htaccess
+%{__rm} html/.htaccess
+%{__rm} install/.htaccess
+%{__rm} languages/.htaccess
+%{__rm} application/.htaccess
+%{__rm} docs/.htaccess
+
+%{__rm} application/config.ini.original
 
 %install
 rm -rf $RPM_BUILD_ROOT
+install -d \
+	$RPM_BUILD_ROOT{%{_sysconfdir},%{_appdir}/{application,html,languages,library,install}} \
+	$RPM_BUILD_ROOT/etc/cron.daily \
 
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}
-install -d $RPM_BUILD_ROOT%{_sysconfdir}/httpd/conf.d/
-install -d $RPM_BUILD_ROOT%{_sysconfdir}/cron.daily/
-install -d $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}/application
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}/html
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}/languages
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}/library
-install -d $RPM_BUILD_ROOT%{_datadir}/%{name}/install
+cp -a application html languages library install $RPM_BUILD_ROOT%{_appdir}
 
-cp ./application/config.ini  $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/config.ini
-rm -f ./application/config.ini
-ln -s %{_sysconfdir}/%{name}/config.ini  $RPM_BUILD_ROOT%{_datadir}/%{name}/application/config.ini
-
-cp ./install/webacula.conf  $RPM_BUILD_ROOT%{_sysconfdir}/httpd/conf.d/webacula.conf
-rm -f ./install/webacula.conf
-
-install -p ./install/webacula_clean_tmp_files.sh \
-   $RPM_BUILD_ROOT%{_sysconfdir}/cron.daily/webacula_clean_tmp_files.sh
-rm -f ./install/webacula_clean_tmp_files.sh
-
-cp -pr ./application $RPM_BUILD_ROOT%{_datadir}/%{name}
-cp -pr ./html        $RPM_BUILD_ROOT%{_datadir}/%{name}
-cp -pr ./languages   $RPM_BUILD_ROOT%{_datadir}/%{name}
-cp -pr ./library     $RPM_BUILD_ROOT%{_datadir}/%{name}
-cp -pr ./install     $RPM_BUILD_ROOT%{_datadir}/%{name}
+mv $RPM_BUILD_ROOT{%{_appdir}/application,%{_sysconfdir}}/config.ini
+ln -s %{_sysconfdir}/config.ini $RPM_BUILD_ROOT%{_appdir}/application
+mv $RPM_BUILD_ROOT{%{_appdir}/install/webacula.conf,%{_sysconfdir}/apache.conf}
+cp -p $RPM_BUILD_ROOT%{_sysconfdir}/{apache,httpd}.conf
+mv $RPM_BUILD_ROOT{%{_appdir}/install,/etc/cron.daily}/webacula_clean_tmp_files.sh
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%triggerin -- apache1 < 1.3.37-3, apache1-base
+%webapp_register apache %{_webapp}
+
+%triggerun -- apache1 < 1.3.37-3, apache1-base
+%webapp_unregister apache %{_webapp}
+
+%triggerin -- apache < 2.2.0, apache-base
+%webapp_register httpd %{_webapp}
+
+%triggerun -- apache < 2.2.0, apache-base
+%webapp_unregister httpd %{_webapp}
 
 %files
 %defattr(644,root,root,755)
 %doc 4CONTRIBUTORS 4CONTRIBUTORS.ru AUTHORS COPYING README UPDATE ChangeLog
-%doc docs/
-%{_datadir}/%{name}/application
-%{_datadir}/%{name}/html
-%{_datadir}/%{name}/library
-%{_datadir}/%{name}/install
-/etc/cron.daily/webacula_clean_tmp_files.sh
-%dir %{_datadir}/%{name}
-%dir %{_datadir}/%{name}/languages
-%config(noreplace) %{_sysconfdir}/httpd/conf.d/webacula.conf
-%config(noreplace) %{_sysconfdir}/%{name}/config.ini
-%lang(de) %{_datadir}/%{name}/languages/de
-%lang(en) %{_datadir}/%{name}/languages/en
-%lang(fr) %{_datadir}/%{name}/languages/fr
-%lang(pt) %{_datadir}/%{name}/languages/pt
-%lang(ru) %{_datadir}/%{name}/languages/ru
-%lang(it) %{_datadir}/%{name}/languages/it
-%lang(es) %{_datadir}/%{name}/languages/es
+%doc docs
+%dir %attr(750,root,http) %{_sysconfdir}
+%attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/apache.conf
+%attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/httpd.conf
+%attr(640,root,http) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/config.ini
+%attr(755,root,root) /etc/cron.daily/webacula_clean_tmp_files.sh
+%dir %{_appdir}
+%{_appdir}/application
+%{_appdir}/html
+%{_appdir}/library
+%{_appdir}/install
+%dir %{_appdir}/languages
+%lang(de) %{_appdir}/languages/de
+%lang(en) %{_appdir}/languages/en
+%lang(fr) %{_appdir}/languages/fr
+%lang(pt) %{_appdir}/languages/pt
+%lang(ru) %{_appdir}/languages/ru
+%lang(it) %{_appdir}/languages/it
+%lang(es) %{_appdir}/languages/es
