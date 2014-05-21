@@ -20,14 +20,14 @@ BuildRequires:	rpmbuild(macros) >= 1.268
 BuildRequires:	sed >= 4.0
 Requires:	ZendFramework >= 1.8.3
 Requires:	bacula-console >= 5.0
-Requires:	php-common >= 4:%{php_min_version}
-Requires:	php-date
-Requires:	php-dom
-Requires:	php-gd
-Requires:	php-json
-Requires:	php-pcre
-Requires:	php-pdo
-Requires:	php-xml
+Requires:	php(core) >= %{php_min_version}
+Requires:	php(date)
+Requires:	php(dom)
+Requires:	php(gd)
+Requires:	php(json)
+Requires:	php(pcre)
+Requires:	php(pdo)
+Requires:	php(xml)
 Requires:	webapps
 Requires:	webserver(php) >= 5.2.4
 BuildArch:	noarch
