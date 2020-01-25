@@ -4,7 +4,6 @@
 #   PHP Fatal error:  Uncaught exception 'Zend_Exception' with message 'Version error for Catalog database (wanted 12, got 14) ' in /usr/share/webacula/html/index.php:183\nStack trace:\n#0 {main}\n  thrown in /usr/share/webacula/html/index.php on line 183
 %define		php_min_version 5.2.4
 # - Requires: /bin/bash
-%include	/usr/lib/rpm/macros.php
 Summary:	Web interface of a Bacula backup system
 Summary(ru.UTF-8):	Веб интерфейс для Bacula backup system
 Name:		webacula
